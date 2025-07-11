@@ -46,7 +46,7 @@ Symptoms in production:
 
 ---
 
-## 3 | Prior Remedies in the Wild
+## 3 | Remedies
 
 | Concept                             | Example Implementation                                   | Impact                               | Drawbacks                                 |
 | ----------------------------------- | -------------------------------------------------------- | ------------------------------------ | ----------------------------------------- |
