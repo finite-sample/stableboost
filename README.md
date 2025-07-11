@@ -73,13 +73,11 @@ Symptoms in production:
 
 For test observation *j* and *K* models:
 
-$$
-\displaystyle \text{RMSE}_j
+$$\displaystyle \text{RMSE}_j
     = \sqrt{2\,\text{Var}_{i}\!\bigl(\hat p_{ij}\bigr)}  
 \quad\Longrightarrow\quad
 \text{MeanRMSE}
-  = \frac{1}{N_{\text{test}}}\sum_j \text{RMSE}_j
-$$
+  = \frac{1}{N_{\text{test}}}\sum_j \text{RMSE}_j$$
 
 > Interprets as the **expected RMSE between predictions from two fresh retrains**.
 
