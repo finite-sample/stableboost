@@ -12,7 +12,41 @@ Symptoms in production:
 
 ---
 
-## 2 | Prior Remedies in the Wild
+# XGBoost Prediction Instability
+
+*A concise technical note*
+
+---
+
+## 1 | Why It Matters
+
+Even with a fixed random seed, **shuffling the order of training rows changes XGBoost’s histogram bins** (`tree_method='hist'`).
+Those altered cut-points yield a different forest and, consequently, **different predictions on exactly the same data**.
+Symptoms in production:
+
+* Apparent “drift” after a routine retrain
+* Flaky regression tests on model outputs
+* Spurious monitoring alerts
+
+---
+
+## 2 | Root Causes of Instability
+
+1. **Histogram bin boundaries depend on row order**
+   XGBoost’s `tree_method='hist'` builds feature histograms on-the-fly by scanning data in memory. Different row orderings → different bin boundaries → different candidate splits.
+
+2. **Split decisions cascade through the tree**
+   Because trees are built top-down, early split differences caused by histogram variation propagate deeply, resulting in structurally different trees.
+
+3. **Subsampling magnifies stochasticity**
+   When `subsample < 1`, the row sampling process depends on the order of input data. So even with the same seed, different permutations yield different sample selections → further amplifying tree variation.
+
+4. **Threading and parallel reductions**
+   In multithreaded training, small race conditions in histogram construction or split evaluation can interact with row order, adding nondeterminism.
+
+---
+
+## 3 | Prior Remedies in the Wild
 
 | Concept                             | Example Implementation                                   | Impact                               | Drawbacks                                 |
 | ----------------------------------- | -------------------------------------------------------- | ------------------------------------ | ----------------------------------------- |
@@ -26,7 +60,7 @@ Symptoms in production:
 
 ---
 
-## 3 | Our Baseline & Metric
+## 4 | Our Baseline & Metric
 
 **Experimental design**
 
@@ -51,7 +85,7 @@ $$
 
 ---
 
-## 4 | Illustrative Results (synthetic data, *K = 15*)
+## 5 | Illustrative Results (synthetic data, *K = 15*)
 
 | Variant               | Accuracy   | ROC-AUC    | Stability RMSE ↓ |
 | --------------------- | ---------- | ---------- | ---------------- |
@@ -63,21 +97,13 @@ $$
 
 ---
 
-## 5 | Clean Reproducible Script
+## 6 | Clean Reproducible Notebook
 
-Save as **`xgb_stability_demo.py`** and run:
-
-```bash
-python xgb_stability_demo.py --n-runs 15 --output results.csv
-```
-
-```python
-# See full script in prior message
-```
+* [Notebook](https://github.com/finite-sample/stableboost/blob/main/stableboost.ipynb)
 
 ---
 
-## 6 | Using This in Practice
+## 7 | Using This in Practice
 
 1. **Drop-in** your real feature matrix in place of `make_classification`.
 2. Tune *K* for runtime vs. stability; RMSE shrinks ∼1/√K.
@@ -88,7 +114,3 @@ python xgb_stability_demo.py --n-runs 15 --output results.csv
    * Set `subsample=1`, `colsample_bytree=1`, and related knobs.
    * Use `random_state` for all randomness.
    * Consider `tree_method='exact'` if dataset is small.
-
----
-
-A lightweight, reproducible way to quantify—and nearly eliminate—row-order instability in XGBoost pipelines.
