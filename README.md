@@ -56,7 +56,7 @@ Symptoms in production:
 | Ensembling over multiple fits       | Average predictions across K shuffles                    | Smooths variance; improves stability | Higher training + inference cost          |
 | Use inherently stable learners      | CatBoost (ordered boosting); LightGBM deterministic mode | Near-zero drift out of the box       | May require reengineering and tuning      |
 
-> ℹ️ The `exact` method performs greedy split finding by checking all possible thresholds for each feature value—no binning or approximation. It is more stable but much slower than the histogram-based default.
+> ℹ️ The `exact` method performs greedy split finding by checking all possible thresholds for each feature value—no binning or approximation. It eliminates histogram-induced variance, but subsampling can still introduce model differences unless disabled.
 
 ---
 
