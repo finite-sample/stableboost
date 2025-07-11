@@ -112,3 +112,7 @@ $$\displaystyle \text{RMSE}_j
    * Set `subsample=1`, `colsample_bytree=1`, and related knobs.
    * Use `random_state` for all randomness.
    * Consider `tree_method='exact'` if dataset is small.
+
+## 8 | Authors
+
+Victor Shia and Gaurav Sood
