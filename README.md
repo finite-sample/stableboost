@@ -111,11 +111,13 @@ $$\displaystyle \text{RMSE}_j
 
 ## 5 | Illustrative Results (synthetic data, *K = 15*)
 
-| Variant               | Accuracy   | ROC-AUC    | Stability RMSE ↓ |
-| --------------------- | ---------- | ---------- | ---------------- |
-| Single XGB (baseline) | **0.9290** | **0.9640** | **0.0314**       |
-| Ensemble of 15 (avg)  | 0.9280     | 0.9648     | **0.0000**       |
-| XGB Random-Forest     | 0.8957     | 0.9518     | **0.0088**       |
+| Variant                                   | Accuracy | ROC_AUC | Stability_RMSE |
+|-------------------------------------------|---------:|--------:|---------------:|
+| Single XGB (K=15)                         | 0.9285   | 0.9643  | 0.0313         |
+| Ensemble (K=15) × 5                       | 0.9310   | 0.9647  | 0.0072         |
+| XGB Random-Forest                         | 0.8957   | 0.9514  | 0.0086         |
+| XGB Exact (subsample = 1, colsample = 1)  | 0.9250   | 0.9632  | 0.0000         |
+
 
 *Row-order alone ≈ 3 pp RMSE; bagging drives it to (near) zero.*
 
