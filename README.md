@@ -12,63 +12,24 @@ Symptoms in production:
 
 ---
 
-# XGBoost Prediction Instability
-
-*A concise technical note*
-
----
-
-## 1 | Why It Matters
-
-Even with a fixed random seed, **shuffling the order of training rows changes XGBoost’s histogram bins** (`tree_method='hist'`).
-Those altered cut-points yield a different forest and, consequently, **different predictions on exactly the same data**.
-Symptoms in production:
-
-* Apparent “drift” after a routine retrain
-* Flaky regression tests on model outputs
-* Spurious monitoring alerts
-
----
-
-## 2 | Root Causes of Instability
-# XGBoost Prediction Instability
-
-*A concise technical note*
-
----
-
-## 1 | Why It Matters
-
-Even with a fixed random seed, **shuffling the order of training rows changes XGBoost’s histogram bins** (`tree_method='hist'`).
-Those altered cut-points yield a different forest and, consequently, **different predictions on exactly the same data**.
-Symptoms in production:
-
-* Apparent “drift” after a routine retrain
-* Flaky regression tests on model outputs
-* Spurious monitoring alerts
-
----
-
 ## 2 | Root Causes of Instability
 
-1. **Subsampling introduces seed sensitivity and randomness**
-   When `subsample < 1`, the model trains on a different subset of rows each round. Even if the seed is fixed, row shuffling changes which examples are selected. This affects both `tree_method='hist'` and `tree_method='exact'` (because the set of rows differs).
+1. **Multi-thread histogram binning is row-order sensitive**  
+   When `tree_method='hist'` **and** `n_jobs > 1`, each thread builds a local
+   quantile sketch on its chunk of rows; merging those sketches makes the final
+   bin boundaries depend on how the chunks were formed—hence on row order.
+   Single-thread `hist` and `tree_method='exact'` avoid this effect.
+   
+2. **Row subsampling amplifies sensitivity**  
+   With `subsample < 1`, every boosting round trains on only a sample of rows.  
+   Shuffling the dataset changes which rows fall into that sample—even under a
+   fixed `random_state`—so the gradient seen by each new tree differs.
 
-2. **Histogram binning introduces row-order sensitivity (except in `exact`)**
-   XGBoost uses different algorithms to decide how to find splits:
-
-   * With `tree_method='hist'` (the default for large data), feature values are discretized into fixed-width histograms as data is read. This process is sensitive to row order and thread scheduling, which influences bin boundaries and the resulting splits.
-   * Other methods like `approx` and `gpu_hist` also rely on binning and thus inherit similar row-order dependence.
-   * Only `tree_method='exact'` avoids this problem by evaluating all possible split thresholds directly; it is not affected by row order (though still sensitive to subsampling if used).
-
-3. **Histogram binning depends on row order**
-   With `tree_method='hist'`, feature values are binned as data is read. Shuffling changes the sequence → changes bin cut-points → changes candidate splits. This happens even with subsampling turned off and fixed seeds.
-
-4. **Split decisions propagate through the tree**
-   Small differences early in the tree (due to bins or sampling) amplify through successive splits, leading to substantially different tree structure and predictions.
-
-5. **Parallelism introduces nondeterminism in reductions**
-   In multithreaded training, operations like histogram accumulation, feature gain computation, and tie-breaking may execute in different orders depending on thread scheduling. This can result in small floating point discrepancies or tie resolution changes—especially when candidate splits are nearly equivalent.
+3. **Column subsampling is a smaller, second-order factor**  
+   With `colsample_bytree < 1`, each tree sees a random subset of features.
+   Different feature subsets nudge split choices; the resulting drift is
+   typically an order of magnitude smaller than the first two causes, but still
+   measurable.
 
 ---
 
